@@ -119,9 +119,9 @@ milvus:
 
 ## 启动方式
 
-```text
 1. 启动：
 
+```text
 make init
 ```
 
