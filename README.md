@@ -1,195 +1,205 @@
 # ReproMind
 
-> 基于 Spring Boot + AI Agent 的智能问答与运维系统
+ReproMind 是一个面向论文复现和实验诊断场景的智能助手项目。项目后端基于 Spring Boot 构建，集成 DashScope 大模型、Spring AI Alibaba Agent Framework 和 Milvus 向量数据库，支持文档上传、向量检索、RAG 问答、工具调用、多 Agent 协作诊断和 SSE 流式输出。
 
-## 📖 项目简介
+简单来说，用户可以上传论文、复现指南、训练日志、指标记录等文件，系统会将文档切分并写入 Milvus 向量库。之后用户提问或触发自动诊断时，Agent 会调用本地工具检索相关证据，再结合大模型生成回答或诊断报告。
 
-企业级智能业务代理系统，包含两大核心模块：
+## 主要功能
 
-### 1. RAG 智能问答
-集成 Milvus 向量数据库和阿里云 DashScope，提供基于检索增强生成的智能问答能力，支持多轮对话和流式输出。
+- 文档上传：支持上传 `txt`、`md` 文件，并自动创建向量索引。
+- RAG 问答：基于上传文档进行检索增强问答。
+- 流式对话：通过 SSE 实时返回模型输出。
+- 工具调用：Agent 可自动调用论文检索、指标检索、日志检索等工具。
+- 多 Agent 诊断：通过 `SupervisorAgent` 调度 Planner 和 Executor，完成论文复现实验诊断。
+- 会话管理：支持多轮对话历史保存和清空。
+- Web 页面：提供简单的前端交互页面。
 
-### 2. AIOps 智能运维
-基于 AI Agent 的自动化运维系统，采用 Planner-Executor-Replanner 架构，实现告警分析、日志查询、智能诊断和报告生成。
+## 技术栈
 
-## 🚀 核心特性
+- Java 17
+- Spring Boot 3.2.0
+- Spring AI
+- Spring AI Alibaba Agent Framework
+- Alibaba Cloud DashScope
+- Milvus
+- Maven
+- HTML / CSS / JavaScript
 
-- ✅ **RAG 问答**: 向量检索 + 多轮对话 + 流式输出
-- ✅ **AIOps 运维**: 智能诊断 + 多 Agent 协作 + 自动报告
-- ✅ **工具集成**: 文档检索、告警查询、日志分析、时间工具
-- ✅ **会话管理**: 上下文维护、历史管理、自动清理
-- ✅ **Web 界面**: 提供测试界面和 RESTful API
+## 项目结构
 
-
-## 🛠️ 技术栈
-
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| Java | 17 | 开发语言 |
-| Spring Boot | 3.2.0 | 应用框架 |
-| Spring AI | - | AI Agent 框架 |
-| DashScope | 2.17.0 | 阿里云 AI 服务 |
-| Milvus | 2.6.10 | 向量数据库 |
-
-## 📦 核心模块
-
-```
-ReproMind/
-├── src/main/java/org/example/
-│   ├── controller/
-│   │   └── ChatController.java        # 统一接口控制器 ⭐
-│   ├── service/
-│   │   ├── ChatService.java           # 对话服务 ⭐
-│   │   ├── AiOpsService.java          # AIOps 服务 ⭐
-│   │   ├── RagService.java            # RAG 服务
-│   │   └── Vector*.java               # 向量服务
-│   ├── agent/tool/                    # Agent 工具集
-│   │   ├── DateTimeTools.java         # 时间工具
-│   │   ├── InternalDocsTools.java     # 文档检索
-│   │   ├── QueryMetricsTools.java     # 告警查询
-│   │   └── QueryLogsTools.java        # 日志查询
-│   └── config/                        # 配置类
-├── src/main/resources/
-│   ├── static/                        # Web 界面
-│   └── application.yml                # 应用配置
-└── repro-docs/                        # 论文复现文档库
+```text
+src/main/java/org/example
+|-- controller
+|   |-- ChatController.java          # 聊天、流式聊天、多 Agent 诊断接口
+|   |-- FileUploadController.java    # 文件上传接口
+|   `-- MilvusCheckController.java   # Milvus 健康检查
+|-- service
+|   |-- ChatService.java             # 普通 ReactAgent 对话逻辑
+|   |-- AiOpsService.java            # 多 Agent 编排诊断逻辑
+|   |-- VectorIndexService.java      # 文档向量化与入库
+|   |-- VectorSearchService.java     # 向量检索
+|   |-- VectorEmbeddingService.java  # DashScope Embedding 调用
+|   `-- DocumentChunkService.java    # 文档切分
+|-- agent/tool
+|   |-- InternalDocsTools.java       # 论文和复现文档检索工具
+|   |-- QueryMetricsTools.java       # 实验指标检索工具
+|   |-- QueryLogsTools.java          # 训练日志检索工具
+|   `-- DateTimeTools.java           # 时间工具
+`-- config                           # 配置类
 ```
 
+## 核心流程
 
-## 📡 核心接口
+普通问答流程：
 
-### 1. 智能问答接口
-
-**流式对话（推荐）**
-```bash
-POST /api/chat_stream
-Content-Type: application/json
-
-{
-  "Id": "session-123",
-  "Question": "什么是向量数据库？"
-}
-```
-支持 SSE 流式输出、自动工具调用、多轮对话。
-
-**普通对话**
-```bash
-POST /api/chat
-Content-Type: application/json
-
-{
-  "Id": "session-123",
-  "Question": "什么是向量数据库？"
-}
-```
-一次性返回完整结果，支持工具调用和多轮对话。
-
-### 2. AIOps 智能运维接口
-
-```bash
-POST /api/ai_ops
-```
-自动执行告警分析流程，生成运维报告（SSE 流式输出）。
-
-### 3. 会话管理
-
-- `POST /api/chat/clear` - 清空会话历史
-- `GET /api/chat/session/{sessionId}` - 获取会话信息
-
-### 4. 文件管理
-
-- `POST /api/upload` - 上传文件并自动向量化
-- `GET /milvus/health` - Milvus 健康检查
-
-
-## ⚙️ 核心配置
-
-### application.yml
-
-```yaml
-server:
-  port: 9900
-
-# Milvus 向量数据库
-milvus:
-  host: localhost
-  port: 19530
-
-# 阿里云 DashScope
-spring:
-  ai:
-    dashscope:
-      api-key: "${DASHSCOPE_API_KEY}" // 环境变量
-
-# RAG 配置
-rag:
-  top-k: 3
-  model: "qwen3-max"
-
-# 文档分片
-document:
-  chunk:
-    max-size: 800
-    overlap: 100
+```text
+用户问题 -> ChatController -> ChatService -> ReactAgent -> 工具调用/向量检索 -> 模型回答
 ```
 
-### 环境变量
+多 Agent 诊断流程：
+
+```text
+用户触发诊断
+-> SupervisorAgent
+-> PlannerAgent 规划诊断步骤
+-> ExecutorAgent 调用工具检索证据
+-> PlannerAgent 根据反馈继续规划或生成最终报告
+```
+
+Planner 和 Executor 之间通过框架中的 `OverAllState` 共享状态通信，主要字段包括 `planner_plan` 和 `executor_feedback`。
+
+## 工具调用说明
+
+项目使用 Spring AI 的 `@Tool` 注解把 Java 方法注册为 Agent 可调用工具：
+
+- `queryPaperDocs`：检索论文、复现指南、实验配置等文档。
+- `queryExperimentMetrics`：检索 accuracy、F1、loss 等指标信息。
+- `queryExperimentLogs`：检索训练日志、报错、OOM、NaN、seed 等信息。
+- `getCurrentDateTime`：获取当前时间。
+
+这些工具底层会调用 `VectorSearchService`，将查询文本向量化后到 Milvus 中检索相关文档片段，再把结果返回给 Agent。
+
+## 环境要求
+
+- JDK 17
+- Maven
+- Docker / Docker Compose
+- DashScope API Key
+
+## 配置说明
+
+请通过环境变量配置 DashScope API Key，不要把真实 Key 写入代码或提交到 GitHub。
+
+PowerShell：
+
+```powershell
+$env:DASHSCOPE_API_KEY="your-api-key"
+```
+
+Bash：
 
 ```bash
 export DASHSCOPE_API_KEY=your-api-key
 ```
 
+应用默认端口：
 
-## 🚀 快速开始
-
-### 1. 环境准备
-
-```bash
-# 设置 API Key
-export DASHSCOPE_API_KEY=your-api-key
-```
-
-### 2. 启动应用
-
-方法一： 手动启动
-```bash
-1.先启动向量数据库
-docker compose up -d -f vector-database.yml
-
-2.启动服务
-mvn clean install
-mvn spring-boot:run
-```
-
-方法二：一键启动
-```bash
-make init  # 会自动启动向量数据库并上传运维文档到向量库
-```
-
-
-### 3. 使用示例
-
-**Web 界面**
-```
+```text
 http://localhost:9900
 ```
 
-**命令行**
-```bash
-# 上传文档
-curl -X POST http://localhost:9900/api/upload \
-  -F "file=@document.txt"
+Milvus 默认地址：
 
-# 智能问答
-curl -X POST http://localhost:9900/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"Id":"test","Question":"什么是向量数据库？"}'
-
-# 健康检查
-curl http://localhost:9900/milvus/health
+```yaml
+milvus:
+  host: localhost
+  port: 19530
 ```
 
+## 启动方式
 
-**版本**: v1.0.0  
-**作者**: chief  
-**许可证**: MIT
+1. 启动：
+
+make init
+```
+
+3. 打开页面：
+
+```text
+http://localhost:9900
+```
+
+## 主要接口
+
+### 上传文件
+
+```http
+POST /api/upload
+```
+
+```text
+file: 上传的 txt 或 md 文件
+```
+
+### 普通问答
+
+```http
+POST /api/chat
+```
+
+请求示例：
+
+```json
+{
+  "Id": "session-001",
+  "Question": "分析一下当前复现实验的指标差距"
+}
+```
+
+### 流式问答
+
+```http
+POST /api/chat_stream
+```
+
+返回类型：
+
+```text
+text/event-stream
+```
+
+### 多 Agent 自动诊断
+
+```http
+POST /api/ai_ops
+```
+
+请求示例：
+
+```json
+{
+  "userRequest": "诊断为什么当前复现实验没有达到论文结果",
+  "runId": "repro-run-001",
+  "symptom": "low_accuracy_or_result_gap",
+  "targetMetric": "accuracy",
+  "currentMetric": "unknown",
+  "focus": "paper_config_metrics_logs"
+}
+```
+
+### 会话管理
+
+```http
+POST /api/chat/clear
+GET  /api/chat/session/{sessionId}
+```
+
+### Milvus 健康检查
+
+```http
+GET /milvus/health
+```
+
+## License
+
+MIT
