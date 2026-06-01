@@ -118,12 +118,13 @@ milvus:
 
 ## 启动方式
 
+```text
 1. 启动：
 
 make init
 ```
 
-3. 打开页面：
+2. 打开页面：
 
 ```text
 http://localhost:9900
