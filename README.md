@@ -63,6 +63,7 @@ src/main/java/org/example
 -> SupervisorAgent
 -> PlannerAgent 规划诊断步骤
 -> ExecutorAgent 调用工具检索证据
+...
 -> PlannerAgent 根据反馈继续规划或生成最终报告
 ```
 
