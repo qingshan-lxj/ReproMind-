@@ -1,0 +1,78 @@
+server:
+  port: 9900
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+file:
+  upload:
+    path: ./uploads
+    allowed-extensions: txt,md
+
+#项目运行在 Windows 宿主机上，不是在 Docker 容器里，所以它通过宿主机端口访问 Milvus
+milvus:
+  host: localhost
+  port: 19530
+  username: ""
+  password: ""
+  database: default
+  timeout: 10000
+
+# Spring AI Alibaba DashScope 配置
+spring:
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:sk-xxxxxx}
+      chat:
+        options:
+          timeout: 180000
+      retry:
+        max-attempts: 3
+        backoff:
+          initial-interval: 2000
+          multiplier: 2
+          max-interval: 10000
+
+    # ReproPilot does not use Tencent CLS MCP. Keep MCP disabled to avoid startup timeout.
+    mcp:
+      client:
+        enabled: false
+        name: tencent-mcp-server
+        version: 1.0.0
+        request-timeout: 60s
+        type: ASYNC
+        sse:
+          connections:
+            tencent-cls:
+              url: https://mcp-api.tencent-cloud.com
+              sse-endpoint: /sse/a41eeed1fc4ed4f1
+
+# 阿里云 DashScope Embedding API 配置
+dashscope:
+  api:
+    key: ${DASHSCOPE_API_KEY:sk-xxxxxx}
+  embedding:
+    model: text-embedding-v4
+
+# 文档切片配置
+document:
+  chunk:
+    max-size: 800
+    overlap: 100
+
+# RAG 配置
+rag:
+  top-k: 3
+  model: "qwen3-max"
+
+# Prometheus 配置
+prometheus:
+  base-url: http://localhost:9090
+  timeout: 10
+  mock-enabled: false
+
+# CLS 云日志服务配置
+cls:
+  mock-enabled: false
